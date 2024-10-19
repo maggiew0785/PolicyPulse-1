@@ -1,0 +1,84 @@
+/* Apply box-sizing to all elements */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Style the body */
+body {
+  font-family: Inter, sans-serif;
+  font-size: 16px;
+  background: #f0f0f0; /* light background color */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+/* Main section styling */
+main {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Welcome section styling */
+.welcome-section {
+  background-color: white;
+  padding: 40px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  width: 80%;
+  max-width: 600px;
+}
+
+/* Welcome heading */
+.welcome-section h1 {
+  font-size: 3rem;
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+/* Welcome description */
+.welcome-section p {
+  font-size: 1.25rem;
+  color: #555;
+  margin-bottom: 2rem;
+}
+
+/* Search form container */
+.search-form {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Input field */
+.search-form input {
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 300px;
+  margin-right: 10px;
+}
+
+/* Go button */
+.search-form button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.search-form button:hover {
+  background-color: #45a049;
+}
