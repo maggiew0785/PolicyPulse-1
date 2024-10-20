@@ -82,3 +82,29 @@ main {
 .search-form button:hover {
   background-color: #45a049;
 }
+
+
+/* Add styles for hidden elements */
+.hidden {
+  display: none;
+}
+
+/* Style the container for the subreddit buttons */
+#subredditButtonsContainer {
+  margin-top: 20px;
+}
+
+/* Style the buttons for subreddits */
+.subreddit-button {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 10px;
+  margin: 5px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.subreddit-button:hover {
+  background-color: #45a049;
+}

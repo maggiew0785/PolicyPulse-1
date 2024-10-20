@@ -4,18 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PolicyPulse</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+    <link rel="stylesheet" href="../static/main.css">
 </head>
 <body>
     <main>
         <section class="welcome-section">
             <h1>Welcome</h1>
             <p>Discover what online communities are saying about...</p>
-            <form action="#" method="get" class="search-form">
-                <input type="text" placeholder="Outdoor seating" name="query">
-                <button type="submit">Go</button>
+            <form id="searchForm" action="javascript:void(0);" method="get" class="search-form">
+                <input type="text" placeholder="Outdoor seating" name="query" id="searchQuery">
+                <button type="submit" id="goButton">Go</button>
             </form>
+            <div id="subredditButtonsContainer" class="hidden">
+                <h2>Select a subreddit:</h2>
+                <div id="subredditButtons"></div>
+            </div>
         </section>
     </main>
+
+    <!-- Place script tag at the end of the body -->
+    <script src="../static/main.js"></script>
 </body>
 </html>
