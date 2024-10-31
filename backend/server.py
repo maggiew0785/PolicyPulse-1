@@ -39,7 +39,7 @@ def get_related_subreddits():
 subreddits = pd.read_csv("data/subreddits.csv")['name'].tolist()
 
 # Define the model type (ensure this is a valid model for your use case)
-MODEL_TYPE = "gpt-4-0125-preview"
+MODEL_TYPE = "gpt-4"
 def get_relevant_subreddits(topic):
     # Process subreddits in chunks
     relevant_subreddits = []
