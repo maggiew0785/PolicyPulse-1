@@ -40,7 +40,7 @@ def get_relevant_subreddits(topic):
 
     for i in range(0, len(subreddits), chunk_size):
         subreddits_chunk = subreddits[i:i + chunk_size]
-        prompt = f"Here is a list of subreddits: {subreddits_chunk}. Which of these are most relevant to the topic '{topic}'? DO NOT RESPOND IF NO SUBREDDITS ARE RELEVANT"
+        prompt = f"Here is a list of subreddits: {subreddits_chunk}. Which of these are most relevant to the topic '{topic}'? Your response should either be just the subreddits name separated by a comma, or blank if no subreddits are relevant."
         
         # Call the OpenAI API
         response = openai.chat.completions.create(
