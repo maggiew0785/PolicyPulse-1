@@ -26,7 +26,7 @@ const themes = [
 ];
 
 // Handle form submission
-searchForm.addEventListener('submit', function (event) {
+searchForm.addEventListener('submit', async function (event){
     console.log("Go button clicked, search query is being processed...");
     event.preventDefault(); // Prevent the form from refreshing the page
 
@@ -43,32 +43,47 @@ searchForm.addEventListener('submit', function (event) {
     subredditButtonsDiv.innerHTML = '';
 
     // Create some buttons based on the query (this is a placeholder logic)
-    const relatedSubreddits = [`r/${query}`, `r/${query}news`, `r/${query}tech`]; // Example subreddit generation
-
-    // Dynamically create subreddit buttons
-    relatedSubreddits.forEach(subreddit => {
-        const button = document.createElement('button');
-        button.textContent = subreddit;
-        button.classList.add('subreddit-button');
-
-        // Add click event listener for each button
-        button.addEventListener('click', function () {
-            console.log(`You selected subreddit ${subreddit}`);
-
-            // Show the theme section and generate the theme boxes
-            themeSection.classList.remove('hidden');
-            generateThemes();
-
-            // Move the theme search bar below the themes after themes are displayed
-            themesContainer.after(searchBar);
-            searchBar.classList.remove('hidden'); // Ensure search bar is visible
+    try {
+        const response = await fetch('/get_related_subreddits', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ topic: query })
         });
 
-        subredditButtonsDiv.appendChild(button);
-    });
+        // Parse the JSON response from the server
+        const data = await response.json();
+        const relatedSubreddits = data.related_subreddits;
 
-    // Show the subreddit buttons container
-    subredditButtonsContainer.classList.remove('hidden');
+    // Dynamically create subreddit buttons
+        relatedSubreddits.forEach(subreddit => {
+            const button = document.createElement('button');
+            button.textContent = subreddit;
+            button.classList.add('subreddit-button');
+
+            // Add click event listener for each button
+            button.addEventListener('click', function () {
+                console.log(`You selected subreddit ${subreddit}`);
+
+                // Show the theme section and generate the theme boxes
+                themeSection.classList.remove('hidden');
+                generateThemes();
+
+                // Move the theme search bar below the themes after themes are displayed
+                themesContainer.after(searchBar);
+                searchBar.classList.remove('hidden'); // Ensure search bar is visible
+            });
+
+            subredditButtonsDiv.appendChild(button);
+        });
+
+        // Show the subreddit buttons container
+        subredditButtonsContainer.classList.remove('hidden');
+    } catch (error) {
+        console.error('Error fetching related subreddits:', error);
+        alert('Failed to retrieve related subreddits. Please try again.')
+    }
 });
 
 // Function to generate theme boxes when subreddit is clicked

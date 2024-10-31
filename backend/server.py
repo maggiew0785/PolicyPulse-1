@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, request, render_template, jsonify
 import openai
 import os  # For accessing environment variables
 
@@ -25,8 +25,15 @@ def subreddit(subreddit):
     # You could fetch subreddit data here and return it as JSON
     return jsonify({'message': f'You selected subreddit {subreddit}'})
 
-# OPENAI_API_KEY = "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"
-# '
+@app.route('/get_related_subreddits', methods=['POST'])
+def get_related_subreddits():
+    data = request.json
+    topic = data.get('topic')
+
+    # Call your function to get relevant subreddits based on the topic
+    related_subreddits = get_relevant_subreddits(topic)
+
+    return jsonify({'related_subreddits': related_subreddits})
 
 # Load the CSV file with subreddits
 subreddits = pd.read_csv("data/subreddits.csv")['name'].tolist()
@@ -52,16 +59,15 @@ def get_relevant_subreddits(topic):
         if response.choices and response.choices[0].message.content:
             print(response.choices[0].message.content)
             relevant_subreddits.append(response.choices[0].message.content)
+        
 
     return relevant_subreddits
 
 def main():
     relevant_subreddits = get_relevant_subreddits("Outdoor Seating")
-    print("size",len(relevant_subreddits))
     for s in relevant_subreddits:
         print(s)
 
 # Run the main function
 if __name__ == "__main__":
-    main()
-    #app.run(host='0.0.0.0', port=5050, debug=True)
+    app.run(host='0.0.0.0', port=5050, debug=True)
