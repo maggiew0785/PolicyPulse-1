@@ -57,8 +57,10 @@ def get_relevant_subreddits(topic):
         
         # Retrieve and print response content if it exists
         if response.choices and response.choices[0].message.content:
+            responses = response.choices[0].message.content.split(",")
             print(response.choices[0].message.content)
-            relevant_subreddits.append(response.choices[0].message.content)
+            for r in responses:
+                relevant_subreddits.append(r)
         
 
     return relevant_subreddits

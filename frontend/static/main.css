@@ -86,13 +86,45 @@ main {
   background-color: #45a049;
 }
 
-/* Style the container for the subreddit buttons */
+/* Style the container for the subreddit buttons
 #subredditButtonsContainer {
   margin-top: 20px;
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
 }
+
+/* Style the buttons for subreddits
+.subreddit-button {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 10px;
+  margin: 5px;
+  border-radius: 5px;
+  cursor: pointer;
+
+}
+
+.subreddit-button:hover {
+  background-color: #45a049;
+} */
+/* Ensure the subreddit buttons container is centered */
+#subredditButtonsContainer {
+  display: flex;
+  flex-direction: column; /* Stack elements vertically */
+  align-items: center; /* Center align the elements */
+  text-align: center;
+}
+
+#subredditButtonsDiv {
+  display: flex;
+  justify-content: center; /* Center align buttons within this container */
+  flex-wrap: wrap; /* Allow buttons to wrap if there are multiple */
+  gap: 10px; /* Space between buttons */
+  margin-top: 10px; /* Add space between "Select a subreddit" and buttons */
+}
+
 
 /* Style the buttons for subreddits */
 .subreddit-button {
@@ -103,11 +135,13 @@ main {
   margin: 5px;
   border-radius: 5px;
   cursor: pointer;
+  text-align: center; /* Center text within the button */
 }
 
 .subreddit-button:hover {
   background-color: #45a049;
 }
+
 
 /* Hidden class to hide elements */
 .hidden {
