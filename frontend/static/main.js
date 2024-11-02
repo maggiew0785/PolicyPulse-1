@@ -76,10 +76,11 @@ searchForm.addEventListener('submit', async function (event){
             },
             body: JSON.stringify({ topic: query })
         });
-
+        
         // Parse the JSON response from the server
         const data = await response.json();
         const relatedSubreddits = data.related_subreddits;
+        console.log('Related Subreddits:', relatedSubreddits);
 
     // Dynamically create subreddit buttons
         relatedSubreddits.forEach(subreddit => {
@@ -88,19 +89,47 @@ searchForm.addEventListener('submit', async function (event){
             button.classList.add('subreddit-button');
 
             // Add click event listener for each button
-            button.addEventListener('click', function () {
-                console.log(`You selected subreddit ${subreddit}`);
-
-                // Show the theme section and generate the theme boxes
+            button.addEventListener('click', async function () {
+                console.log("Button clicked for subreddit:", subreddit);
+                // Show the theme section
                 themeSection.classList.remove('hidden');
-                generateThemes();
 
-                // Move the theme search bar below the themes after themes are displayed
-                themesContainer.after(searchBar);
-                searchBar.classList.remove('hidden'); // Ensure search bar is visible
+                // Fetch themes based on the selected subreddit
+                try {
+                    const cleanedSubreddit = subreddit.trim().replace(/^r\//, ''); // Clean subreddit name
+                    // alert("Fetching themes from: " + `/get_themes/${subreddit}`); // Log the URL
+                    // alert("Fetching themes from: " + `/get_themes/${cleanedSubreddit}`); // Log the URL
+
+                    // Fetch themes based on the selected subreddit
+                    const themeResponse = await fetch(`/get_themes/${cleanedSubreddit}`, {
+                        method: 'GET',  // Method is GET for this request
+                        headers: {
+                            'Content-Type': 'application/json' // Optional for GET, but can be included
+                        }
+                    });  
+
+                    alert(themeResponse)
+
+                    if (!themeResponse.ok) {
+                        throw new Error('Failed to retrieve themes');
+                    }
+                    const themeData = await themeResponse.json();
+
+                    // Generate theme boxes with the fetched theme data
+                    generateThemes(themeData);
+
+                    // Move the theme search bar below the themes after themes are displayed
+                    themesContainer.after(searchBar);
+                    searchBar.classList.remove('hidden'); // Ensure search bar is visible
+                } catch (error) {
+                    console.error('Error fetching themes:', error);
+                    alert('Failed to retrieve themes. Please tryy again.');
+                }
             });
 
             subredditButtonsDiv.appendChild(button);
+            console.log('Button created for subreddit:', subreddit);
+
         });
 
         // Show the subreddit buttons container
@@ -111,16 +140,16 @@ searchForm.addEventListener('submit', async function (event){
     }
 });
 
-function generateThemes() {
-    themesContainer.innerHTML = '';
+function generateThemes(themeData) {
+    themesContainer.innerHTML = ''; // Clear previous themes
 
-    themes.forEach(theme => {
+    themeData.forEach(theme => {
         const themeBox = document.createElement('div');
         themeBox.classList.add('theme-box');
 
-        const themePercentage = document.createElement('div');
-        themePercentage.classList.add('theme-percentage');
-        themePercentage.textContent = theme.percentage;
+        // const themePercentage = document.createElement('div');
+        // themePercentage.classList.add('theme-percentage');
+        // themePercentage.textContent = theme.percentage;
 
         const themeIcon = document.createElement('div');
         themeIcon.classList.add('theme-icon');
@@ -132,7 +161,7 @@ function generateThemes() {
         const themeDescription = document.createElement('p');
         themeDescription.textContent = theme.description;
 
-        themeBox.appendChild(themePercentage);
+        // themeBox.appendChild(themePercentage);
         themeBox.appendChild(themeIcon);
         themeBox.appendChild(themeTitle);
         themeBox.appendChild(themeDescription);
@@ -143,6 +172,7 @@ function generateThemes() {
         themesContainer.appendChild(themeBox);
     });
 }
+
 
 function generateReport(data) {
     console.log("Generating report...");
