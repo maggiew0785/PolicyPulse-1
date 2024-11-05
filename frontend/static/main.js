@@ -142,10 +142,38 @@ searchForm.addEventListener('submit', async function (event) {
             button.textContent = subreddit;
             button.classList.add('subreddit-button');
             
-            // When a subreddit is selected, start the processing
+            // When a subreddit button is clicked, fetch and display themes
             button.addEventListener('click', async () => {
-                console.log("Selected subreddit:", subreddit);
-                await startProcessing();
+                console.log("Fetching themes for selected subreddit:", subreddit);
+                
+                // Fetch themes based on the selected subreddit
+                const cleanedSubreddit = subreddit.trim().replace(/^r\//, '');
+                try {
+                    const themeResponse = await fetch(`/get_themes/${cleanedSubreddit}`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (!themeResponse.ok) {
+                        throw new Error('Failed to retrieve themes');
+                    }
+                    
+                    // Parse the theme data from the response
+                    const themeData = await themeResponse.json();
+
+                    // Generate theme boxes with the fetched theme data
+                    generateThemes(themeData);
+
+                    // Move the theme search bar below the themes after themes are displayed
+                    themesContainer.after(searchBar);
+                    searchBar.classList.remove('hidden'); // Ensure search bar is visible
+
+                } catch (error) {
+                    console.error('Error fetching themes:', error);
+                    alert('Failed to fetch themes. Please try again.');
+                }
             });
             
             subredditButtonsDiv.appendChild(button);
@@ -159,6 +187,61 @@ searchForm.addEventListener('submit', async function (event) {
         alert('Failed to fetch related subreddits. Please try again.');
     }
 });
+
+
+// // Handle form submission
+// searchForm.addEventListener('submit', async function (event) {
+//     console.log("Go button clicked, search query is being processed...");
+//     event.preventDefault();
+
+//     const query = document.getElementById('searchQuery').value.trim();
+//     if (!query) {
+//         alert('Please enter a search term!');
+//         return;
+//     }
+
+//     // Clear out any existing buttons
+//     subredditButtonsDiv.innerHTML = '';
+
+//     try {
+//         const response = await fetch('/get_related_subreddits', {
+//             method: 'POST',
+//             headers: {
+//                 'Content-Type': 'application/json'
+//             },
+//             body: JSON.stringify({ topic: query })
+//         });
+        
+//         if (!response.ok) {
+//             throw new Error('Failed to fetch related subreddits');
+//         }
+
+//         const data = await response.json();
+//         console.log('Related Subreddits:', data.related_subreddits);
+
+//         // Create buttons for each subreddit
+//         data.related_subreddits.forEach(subreddit => {
+//             const button = document.createElement('button');
+//             button.textContent = subreddit;
+//             button.classList.add('subreddit-button');
+            
+//             // When a subreddit is selected, start the processing
+//             button.addEventListener('click', async () => {
+//                 console.log("Selected subreddit:", subreddit);
+//                 await startProcessing();
+//             });
+            
+//             subredditButtonsDiv.appendChild(button);
+//         });
+
+//         // Show the subreddit buttons container
+//         subredditButtonsContainer.classList.remove('hidden');
+
+//     } catch (error) {
+//         console.error('Error:', error);
+//         alert('Failed to fetch related subreddits. Please try again.');
+//     }
+// });
 
 function generateThemes(themes) {
     themesContainer.innerHTML = '';
