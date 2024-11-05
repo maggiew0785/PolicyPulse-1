@@ -70,6 +70,46 @@ def get_related_subreddits():
     related_subreddits = get_relevant_subreddits(topic)
     return jsonify({'related_subreddits': related_subreddits})
 
+@app.route('/get_themes/<subreddit>', methods=['GET'])
+def get_themes(subreddit):
+    print(f"Requested subreddit: {subreddit}")  # Log the received subreddit
+    # Create a prompt for the OpenAI API
+    prompt = f"Generate a list of 6 themes that policymakers and policy researchers would be interested in learning more about, related to the subreddit '{subreddit}', each with a title ('title') and a very brief description ('description'). Return the themes in JSON format."
+
+    # Call the OpenAI API to get themes
+    try:
+        response = openai.chat.completions.create(
+            model=deployment_name,  # Specify your model
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+        print(response)
+        
+
+        # Extract the content from the response
+        themes_json = response.choices[0].message.content.strip()
+        # print(themes_json)
+
+        # Extract only the JSON part by removing the Markdown formatting
+        # Assuming the JSON is wrapped in ```json ... ```
+        json_start = themes_json.find("[")  # Find the start of the JSON array
+        json_end = themes_json.rfind("]") + 1  # Find the end of the JSON array
+        clean_json_string = themes_json[json_start:json_end]
+
+        # Print the cleaned JSON string for debugging
+        print("Cleaned JSON String:", clean_json_string)
+
+        # Parse the cleaned JSON string to a Python dictionary
+        themes_data = json.loads(clean_json_string)
+
+        # Return the JSON response
+        return jsonify(themes_data)
+
+    except Exception as e:
+        print(f"Error fetching themes: {e}")
+        return jsonify({"error": "Failed to retrieve themes."}), 500
+
 def run_processing_pipeline():
     """Run both processing scripts in sequence"""
     try:
