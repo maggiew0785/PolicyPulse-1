@@ -3,12 +3,13 @@ from flask_cors import CORS
 import openai
 import os
 from dotenv import load_dotenv
-import pandas as pd
+import pandas as pd 
 import json
 from threading import Thread
 import logging
 from data.steps.a_reddit_to_quotes import main as reddit_quotes_main
 from data.steps.b_json_to_subtopics import main as subtopics_main
+from data.steps.c_subtopic_codes_to_quotes import main as assign_codes_main
 
 # Load environment variables
 load_dotenv()
@@ -92,6 +93,8 @@ def run_processing_pipeline():
         processing_status['current_stage'] = 'subtopics'
         logger.info("Starting subtopics analysis...")
         subtopics_main()  # This one might need arguments too, show me the function signature
+        processing_status['progress'] = 50
+        assign_codes_main()
         processing_status['progress'] = 100
         
         logger.info("Processing completed successfully")

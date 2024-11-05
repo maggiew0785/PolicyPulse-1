@@ -115,6 +115,10 @@ def main():
     analysis_file = r"C:\Users\mwang\PolicyPulse\output_quotes_ai\combined\summary_analysis.json"
     input_file = r"C:\Users\mwang\PolicyPulse\output_quotes_ai\combined\combined_quotes.jsonl"
     output_file = r"C:\Users\mwang\PolicyPulse\output_quotes_ai\combined\categorized_quotes.jsonl"
+        # Check if output file already exists
+    if os.path.exists(output_file):
+        print(f"Combined quote and codes file {output_file} already exists. Skipping matching.")
+        return
     
     # Read codes
     print("Reading codes from analysis file...")

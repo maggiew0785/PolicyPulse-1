@@ -74,6 +74,13 @@ def analyze_summaries(summaries: List[str]) -> dict:
 def main():
     # Path to your JSONL file
     file_path = r"C:\Users\mwang\PolicyPulse\output_quotes_ai\combined"
+    # Define output path early
+    output_path = os.path.join(os.path.dirname(file_path), 'summary_analysis.json')
+    
+    # Check if output file already exists
+    if os.path.exists(output_path):
+        print(f"Analysis file {output_path} already exists. Skipping analysis.")
+        return
     
     # Get all JSONL files in the directory
     jsonl_files = []
@@ -105,7 +112,6 @@ def main():
             print(f"Description: {code['description']}")
         
         # Save results to a file
-        output_path = os.path.join(os.path.dirname(file_path), 'summary_analysis.json')
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=2)
         print(f"\nResults saved to: {output_path}")

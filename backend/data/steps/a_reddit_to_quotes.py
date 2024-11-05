@@ -117,7 +117,7 @@ def process_file(file_path, output_dir):
     
     # Read existing processed IDs from the JSONL file
     processed_ids = set()
-    output_subdir = os.path.join(output_dir, 'combined')  # Match your directory structure
+    output_subdir = os.path.join(output_dir, 'combined')
     os.makedirs(output_subdir, exist_ok=True)
     output_path = os.path.join(output_subdir, 'combined_quotes.jsonl')
     
@@ -140,13 +140,14 @@ def process_file(file_path, output_dir):
 
     if len(unprocessed_rows) == 0:
         print("No new rows to process!")
-        return
+        return  # Exit early if nothing to process
 
+    # Only create pool and progress bar if there are actually rows to process
     with Pool(POOL_SIZE) as pool:
         args = [(file_path, row, output_dir) for _, row in unprocessed_rows.iterrows()]
-        for _ in tqdm(pool.imap_unordered(process_row, args), total=len(unprocessed_rows),
-                      desc=f"Processing {os.path.basename(file_path)}"):
-            time.sleep(2)
+        list(tqdm(pool.imap_unordered(process_row, args), 
+                 total=len(unprocessed_rows),
+                 desc=f"Processing {os.path.basename(file_path)}"))
 
 def process_row(args):
     file_path, row, output_dir = args
