@@ -9,56 +9,109 @@ const reportContainer = document.getElementById('reportContainer');
 const reportContent = document.getElementById('reportContent');
 const closeReportButton = document.getElementById('closeReportButton');
 
-// Example placeholder themes data
-const themes = [
-    {
-        title: 'Noise Complaints',
-        percentage: '20%',
-        description: '“Just try living with the noise of a restaurant in front of your window”'
-    },
-    {
-        title: 'Sidewalk Space',
-        percentage: '15%',
-        description: '“I don’t mind the sidewalk dining if they leave enough space for pedestrians”'
-    },
-    {
-        title: 'Business Restrictions',
-        percentage: '15%',
-        description: '“The financial burden we’re putting on small businesses feels unnecessary”'
-    }
-];
+// Add loading indicator elements
+const loadingIndicator = document.createElement('div');
+loadingIndicator.className = 'loading-indicator hidden';
+loadingIndicator.innerHTML = `
+    <div class="loading-spinner"></div>
+    <div class="loading-status">Processing data...</div>
+    <div class="loading-progress">0%</div>
+`;
+document.body.appendChild(loadingIndicator);
 
-const reportData = {
-    title: "Noise Complaints",
-    percentage: "20%",
-    postsCount: "898",
-    description: "Just try living with the noise of a restaurant in front of your window.",
-    items: [
-        {
-            count: 354,
-            title: "Noise Ordinance Regulations",
-            description: "Policies governing acceptable noise levels and hours during which outdoor seating areas must comply...",
-            details: "More information on noise ordinance regulations and community responses."
-        },
-        {
-            count: 255,
-            title: "Permitting and Zoning Requirements",
-            description: "Local regulations that determine where outdoor seating can be established...",
-            details: "Details about zoning requirements and noise mitigation measures."
-        },
-        // Add more items as needed
-    ]
-};
+// Status checking interval
+let statusCheckInterval;
+
+async function startProcessing() {
+    try {
+        const response = await fetch('/api/start-processing', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to start processing');
+        }
+
+        // Show loading indicator
+        loadingIndicator.classList.remove('hidden');
+        
+        // Start checking status
+        startStatusChecking();
+
+    } catch (error) {
+        console.error('Error starting processing:', error);
+        alert('Failed to start data processing. Please try again.');
+    }
+}
+
+async function checkStatus() {
+    try {
+        const response = await fetch('/api/status');
+        const status = await response.json();
+
+        // Update loading indicator
+        const statusText = document.querySelector('.loading-status');
+        const progressText = document.querySelector('.loading-progress');
+        
+        statusText.textContent = status.current_stage === 'reddit_quotes' 
+            ? 'Collecting Reddit data...'
+            : 'Generating themes...';
+        progressText.textContent = `${status.progress}%`;
+
+        if (!status.is_processing) {
+            // Processing completed
+            clearInterval(statusCheckInterval);
+            loadingIndicator.classList.add('hidden');
+            
+            if (status.error) {
+                alert('Processing failed: ' + status.error);
+            } else {
+                // Fetch and display results
+                fetchAndDisplayResults();
+            }
+        }
+
+    } catch (error) {
+        console.error('Error checking status:', error);
+        clearInterval(statusCheckInterval);
+        loadingIndicator.classList.add('hidden');
+        alert('Error checking processing status');
+    }
+}
+
+function startStatusChecking() {
+    // Check status every 2 seconds
+    statusCheckInterval = setInterval(checkStatus, 2000);
+}
+
+async function fetchAndDisplayResults() {
+    try {
+        const response = await fetch('/api/results');
+        if (!response.ok) {
+            throw new Error('Failed to fetch results');
+        }
+        
+        const data = await response.json();
+        generateThemes(data.codes);
+        
+        // Show themes section
+        themeSection.classList.remove('hidden');
+        
+    } catch (error) {
+        console.error('Error fetching results:', error);
+        alert('Failed to fetch analysis results');
+    }
+}
 
 // Handle form submission
-searchForm.addEventListener('submit', async function (event){
+searchForm.addEventListener('submit', async function (event) {
     console.log("Go button clicked, search query is being processed...");
-    event.preventDefault(); // Prevent the form from refreshing the page
+    event.preventDefault();
 
-    // Get the search query from the input field
     const query = document.getElementById('searchQuery').value.trim();
-
-    // If the input is empty, do nothing
     if (!query) {
         alert('Please enter a search term!');
         return;
@@ -67,7 +120,6 @@ searchForm.addEventListener('submit', async function (event){
     // Clear out any existing buttons
     subredditButtonsDiv.innerHTML = '';
 
-    // Create some buttons based on the query (this is a placeholder logic)
     try {
         const response = await fetch('/get_related_subreddits', {
             method: 'POST',
@@ -77,154 +129,116 @@ searchForm.addEventListener('submit', async function (event){
             body: JSON.stringify({ topic: query })
         });
         
-        // Parse the JSON response from the server
-        const data = await response.json();
-        const relatedSubreddits = data.related_subreddits;
-        console.log('Related Subreddits:', relatedSubreddits);
+        if (!response.ok) {
+            throw new Error('Failed to fetch related subreddits');
+        }
 
-    // Dynamically create subreddit buttons
-        relatedSubreddits.forEach(subreddit => {
+        const data = await response.json();
+        console.log('Related Subreddits:', data.related_subreddits);
+
+        // Create buttons for each subreddit
+        data.related_subreddits.forEach(subreddit => {
             const button = document.createElement('button');
             button.textContent = subreddit;
             button.classList.add('subreddit-button');
-
-            // Add click event listener for each button
-            button.addEventListener('click', async function () {
-                console.log("Button clicked for subreddit:", subreddit);
-                // Show the theme section
-                themeSection.classList.remove('hidden');
-
-                // Fetch themes based on the selected subreddit
-                try {
-                    const cleanedSubreddit = subreddit.trim().replace(/^r\//, ''); // Clean subreddit name
-                    // alert("Fetching themes from: " + `/get_themes/${subreddit}`); // Log the URL
-                    // alert("Fetching themes from: " + `/get_themes/${cleanedSubreddit}`); // Log the URL
-
-                    // Fetch themes based on the selected subreddit
-                    const themeResponse = await fetch(`/get_themes/${cleanedSubreddit}`, {
-                        method: 'GET',  // Method is GET for this request
-                        headers: {
-                            'Content-Type': 'application/json' // Optional for GET, but can be included
-                        }
-                    });  
-
-                    alert(themeResponse)
-
-                    if (!themeResponse.ok) {
-                        throw new Error('Failed to retrieve themes');
-                    }
-                    const themeData = await themeResponse.json();
-
-                    // Generate theme boxes with the fetched theme data
-                    generateThemes(themeData);
-
-                    // Move the theme search bar below the themes after themes are displayed
-                    themesContainer.after(searchBar);
-                    searchBar.classList.remove('hidden'); // Ensure search bar is visible
-                } catch (error) {
-                    console.error('Error fetching themes:', error);
-                    alert('Failed to retrieve themes. Please tryy again.');
-                }
+            
+            // When a subreddit is selected, start the processing
+            button.addEventListener('click', async () => {
+                console.log("Selected subreddit:", subreddit);
+                await startProcessing();
             });
-
+            
             subredditButtonsDiv.appendChild(button);
-            console.log('Button created for subreddit:', subreddit);
-
         });
 
         // Show the subreddit buttons container
         subredditButtonsContainer.classList.remove('hidden');
+
     } catch (error) {
-        console.error('Error fetching related subreddits:', error);
-        alert('Failed to retrieve related subreddits. Please try again.')
+        console.error('Error:', error);
+        alert('Failed to fetch related subreddits. Please try again.');
     }
 });
 
-function generateThemes(themeData) {
-    themesContainer.innerHTML = ''; // Clear previous themes
+function generateThemes(themes) {
+    themesContainer.innerHTML = '';
 
-    themeData.forEach(theme => {
+    themes.forEach(theme => {
         const themeBox = document.createElement('div');
         themeBox.classList.add('theme-box');
 
-        // const themePercentage = document.createElement('div');
-        // themePercentage.classList.add('theme-percentage');
-        // themePercentage.textContent = theme.percentage;
-
         const themeIcon = document.createElement('div');
         themeIcon.classList.add('theme-icon');
-        themeIcon.innerHTML = '&#128101;';  // People icon
+        themeIcon.innerHTML = '&#128101;';
 
         const themeTitle = document.createElement('h2');
-        themeTitle.textContent = theme.title;
+        themeTitle.textContent = theme.name;
+
+        const themePercentage = document.createElement('div');
+        themePercentage.classList.add('theme-percentage');
+        themePercentage.textContent = theme.percentage;
 
         const themeDescription = document.createElement('p');
         themeDescription.textContent = theme.description;
 
-        // themeBox.appendChild(themePercentage);
         themeBox.appendChild(themeIcon);
         themeBox.appendChild(themeTitle);
+        themeBox.appendChild(themePercentage);
         themeBox.appendChild(themeDescription);
-
-        // Add click event listener to display report when theme is clicked
-        themeBox.addEventListener('click', () => generateReport(reportData));
 
         themesContainer.appendChild(themeBox);
     });
 }
 
-
-function generateReport(data) {
-    console.log("Generating report...");
-    
-    reportContent.innerHTML = ''; // Clear previous content in reportContent
-
-    // Populate report content
-    const reportHeader = document.createElement('div');
-    reportHeader.classList.add('report-header');
-    reportHeader.innerHTML = `
-        <div class="report-percentage">${data.percentage}</div>
-        <div class="report-posts">${data.postsCount} Posts</div>
-        <div class="report-icon">&#128101;</div>
-        <h2 class="report-title">${data.title}</h2>
-        <p class="report-description">"${data.description}"</p>
-    `;
-
-    // Create items container
-    const reportItems = document.createElement('div');
-    reportItems.classList.add('report-items');
-
-    data.items.forEach(item => {
-        const reportItem = document.createElement('div');
-        reportItem.classList.add('report-item');
-        
-        reportItem.innerHTML = `
-            <span class="item-count">${item.count} posts</span>
-            <span class="item-title">${item.title}:</span>
-            <span class="item-description">${item.description}</span>
-            <button class="toggle-details">&#x25BC;</button>
-        `;
-
-        const itemDetails = document.createElement('div');
-        itemDetails.classList.add('item-details', 'hidden');
-        itemDetails.innerHTML = `<p>${item.details}</p>`;
-
-        const toggleButton = reportItem.querySelector('.toggle-details');
-        toggleButton.addEventListener('click', () => {
-            itemDetails.classList.toggle('hidden');
-            toggleButton.innerHTML = itemDetails.classList.contains('hidden') ? '&#x25BC;' : '&#x25B2;';
-        });
-
-        reportItem.appendChild(itemDetails);
-        reportItems.appendChild(reportItem);
-    });
+// Add close report functionality
+if (closeReportButton) {
     closeReportButton.addEventListener('click', () => {
-        reportContainer.classList.add('hidden'); // Hide the report container on close
+        reportContainer.classList.add('hidden');
     });
-
-    reportContent.appendChild(reportHeader);
-    reportContent.appendChild(reportItems);
-
-    // Show the report container
-    reportContainer.classList.remove('hidden');
 }
+
+// Add CSS for loading indicator
+const style = document.createElement('style');
+style.textContent = `
+    .loading-indicator {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        text-align: center;
+        z-index: 1000;
+    }
+
+    .loading-spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 10px;
+    }
+
+    .loading-status {
+        margin-bottom: 10px;
+        font-weight: bold;
+    }
+
+    .loading-progress {
+        color: #666;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+document.head.appendChild(style);

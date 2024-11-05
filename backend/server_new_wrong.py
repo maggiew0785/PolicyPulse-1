@@ -9,6 +9,7 @@ from threading import Thread
 import logging
 from data.steps.a_reddit_to_quotes import main as reddit_quotes_main
 from data.steps.b_json_to_subtopics import main as subtopics_main
+from data.steps.c_subtopic_codes_to_quotes import main as codes_quotes_main
 
 # Load environment variables
 load_dotenv()
@@ -62,15 +63,8 @@ processing_status = {
 def index():
     return render_template('index.html')
 
-@app.route('/get_related_subreddits', methods=['POST'])
-def get_related_subreddits():
-    data = request.json
-    topic = data.get('topic')
-    related_subreddits = get_relevant_subreddits(topic)
-    return jsonify({'related_subreddits': related_subreddits})
-
 def run_processing_pipeline():
-    """Run both processing scripts in sequence"""
+    """Run all processing scripts in sequence"""
     try:
         # Start reddit quotes collection
         processing_status.update({
@@ -81,17 +75,23 @@ def run_processing_pipeline():
         })
         
         # Define input and output directories
-        input_directory = r"C:\\Users\\mwang\\PolicyPulse\\output_raw_ai" 
-        output_directory = r"C:\\Users\\mwang\\PolicyPulse\\output_quotes_ai"
+        input_directory = r"C:\Users\mwang\PolicyPulse\output_raw_ai" 
+        output_directory = r"C:\Users\mwang\PolicyPulse\output_quotes_ai"
         
         logger.info("Starting Reddit data collection...")
         reddit_quotes_main(input_directory, output_directory)
-        processing_status['progress'] = 50
+        processing_status['progress'] = 33
         
         # Start subtopics generation
         processing_status['current_stage'] = 'subtopics'
         logger.info("Starting subtopics analysis...")
-        subtopics_main()  # This one might need arguments too, show me the function signature
+        subtopics_main()
+        processing_status['progress'] = 66
+        
+        # Start code-quote mapping
+        processing_status['current_stage'] = 'code_mapping'
+        logger.info("Starting code-quote mapping...")
+        codes_quotes_main()
         processing_status['progress'] = 100
         
         logger.info("Processing completed successfully")
@@ -105,6 +105,81 @@ def run_processing_pipeline():
             'is_processing': False,
             'current_stage': None
         })
+
+@app.route('/api/theme-quotes', methods=['POST'])
+def get_theme_quotes():
+    """Get quotes for selected themes"""
+    try:
+        data = request.json
+        selected_themes = data.get('themes', [])
+        
+        if not selected_themes:
+            return jsonify({
+                'status': 'error',
+                'message': 'No themes selected'
+            }), 400
+            
+        # Path to your files
+        categorized_quotes_path = r"C:\Users\mwang\PolicyPulse\output_quotes_ai\combined\categorized_quotes.jsonl"
+        codes_file_path = r"C:\Users\mwang\PolicyPulse\output_quotes_ai\combined\codes.json"
+        
+        # Load the codes data
+        with open(codes_file_path, 'r') as f:
+            codes_data = json.load(f)
+            
+        # Get codes associated with selected themes
+        theme_codes = []
+        for theme in selected_themes:
+            theme_codes.extend([
+                code['code'] 
+                for code in codes_data 
+                if code['theme'] == theme
+            ])
+            
+        # Load and filter the categorized quotes
+        themed_quotes = []
+        with jsonlines.open(categorized_quotes_path) as reader:
+            for quote in reader:
+                # Check if any of the quote's codes match our theme codes
+                if any(code in theme_codes for code in quote.get('codes', [])):
+                    # Add theme information to the quote
+                    quote['themes'] = [
+                        theme for theme in selected_themes
+                        if any(
+                            code['code'] in quote.get('codes', [])
+                            for code in codes_data
+                            if code['theme'] == theme
+                        )
+                    ]
+                    themed_quotes.append(quote)
+        
+        # Group quotes by theme
+        quotes_by_theme = {theme: [] for theme in selected_themes}
+        for quote in themed_quotes:
+            for theme in quote['themes']:
+                quotes_by_theme[theme].append(quote)
+        
+        return jsonify({
+            'status': 'success',
+            'quotes_by_theme': quotes_by_theme,
+            'total_quotes': len(themed_quotes),
+            'themes': selected_themes,
+            'codes': theme_codes
+        })
+        
+    except Exception as e:
+        logger.error(f"Error fetching theme quotes: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/get_related_subreddits', methods=['POST'])
+def get_related_subreddits():
+    data = request.json
+    topic = data.get('topic')
+    related_subreddits = get_relevant_subreddits(topic)
+    return jsonify({'related_subreddits': related_subreddits})
 
 @app.route('/api/start-processing', methods=['POST'])
 def start_processing():
