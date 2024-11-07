@@ -74,7 +74,7 @@ def get_related_subreddits():
 def get_themes(subreddit):
     print(f"Requested subreddit: {subreddit}")  # Log the received subreddit
     # Create a prompt for the OpenAI API
-    prompt = f"Generate a list of 6 themes that policymakers and policy researchers would be interested in learning more about, related to the subreddit '{subreddit}', each with a title ('title') and a very brief description ('description'). Return the themes in JSON format."
+    prompt = f"Generate a list of 9 themes that policymakers and policy researchers would be interested in learning more about, related to the subreddit '{subreddit}', each with a title ('title') and a very brief description ('description'). Return the themes in JSON format."
 
     # Call the OpenAI API to get themes
     try:
@@ -148,6 +148,44 @@ def run_processing_pipeline():
             'is_processing': False,
             'current_stage': None
         })
+
+import jsonlines
+@app.route('/api/quotes/<subtopic>')
+def get_quotes(subtopic):
+    try:
+        print(f"Fetching quotes for subtopic: {subtopic}")
+        quotes_file = r'C:\Users\mwang\PolicyPulse\output_quotes_ai\combined\categorized_quotes.jsonl'
+
+        if not os.path.exists(quotes_file):
+            print(f"Quotes file not found: {quotes_file}")
+            return jsonify({'error': 'Quotes file not found'}), 404
+            
+        matching_quotes = []
+        
+        # Read quotes and find those that have the matching code_name
+        with jsonlines.open(quotes_file) as reader:
+            for quote in reader:
+                # Check if any of the codes match the subtopic
+                if any(code['code_name'] == subtopic for code in quote.get('codes', [])):
+                    matching_quotes.append({
+                        'text': quote.get('quote', ''),  # Note: using 'quote' field
+                        'subreddit': quote.get('source_id', ''),  # Note: using 'source_id' field
+                        'score': quote.get('score', 0)
+                    })
+        
+        print(f"Found {len(matching_quotes)} matching quotes for subtopic: {subtopic}")
+        
+        # Limit to 5 quotes
+        matching_quotes = matching_quotes[:5]
+        
+        return jsonify(matching_quotes)
+    
+    except Exception as e:
+        print(f"Error fetching quotes: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to fetch quotes: {str(e)}'}), 500
+    
 
 @app.route('/api/start-processing', methods=['POST'])
 def start_processing():
