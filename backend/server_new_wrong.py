@@ -3,13 +3,13 @@ from flask_cors import CORS
 import openai
 import os
 from dotenv import load_dotenv
-import pandas as pd 
+import pandas as pd
 import json
 from threading import Thread
 import logging
 from data.steps.a_reddit_to_quotes import main as reddit_quotes_main
 from data.steps.b_json_to_subtopics import main as subtopics_main
-from data.steps.c_subtopic_codes_to_quotes import main as assign_codes_main
+from data.steps.c_subtopic_codes_to_quotes import main as codes_quotes_main
 
 # Load environment variables
 load_dotenv()
@@ -63,55 +63,8 @@ processing_status = {
 def index():
     return render_template('index.html')
 
-@app.route('/get_related_subreddits', methods=['POST'])
-def get_related_subreddits():
-    data = request.json
-    topic = data.get('topic')
-    related_subreddits = get_relevant_subreddits(topic)
-    return jsonify({'related_subreddits': related_subreddits})
-
-@app.route('/get_themes/<subreddit>', methods=['GET'])
-def get_themes(subreddit):
-    print(f"Requested subreddit: {subreddit}")  # Log the received subreddit
-    # Create a prompt for the OpenAI API
-    prompt = f"Generate a list of 9 themes that policymakers and policy researchers would be interested in learning more about, related to the subreddit '{subreddit}', each with a title ('title') and a very brief description ('description'). Return the themes in JSON format."
-
-    # Call the OpenAI API to get themes
-    try:
-        response = openai.chat.completions.create(
-            model=deployment_name,  # Specify your model
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
-        print(response)
-        
-
-        # Extract the content from the response
-        themes_json = response.choices[0].message.content.strip()
-        # print(themes_json)
-
-        # Extract only the JSON part by removing the Markdown formatting
-        # Assuming the JSON is wrapped in ```json ... ```
-        json_start = themes_json.find("[")  # Find the start of the JSON array
-        json_end = themes_json.rfind("]") + 1  # Find the end of the JSON array
-        clean_json_string = themes_json[json_start:json_end]
-
-        # Print the cleaned JSON string for debugging
-        print("Cleaned JSON String:", clean_json_string)
-
-        # Parse the cleaned JSON string to a Python dictionary
-        themes_data = json.loads(clean_json_string)
-
-        # Return the JSON response
-        return jsonify(themes_data)
-
-    except Exception as e:
-        print(f"Error fetching themes: {e}")
-        return jsonify({"error": "Failed to retrieve themes."}), 500
-
 def run_processing_pipeline():
-    """Run both processing scripts in sequence"""
+    """Run all processing scripts in sequence"""
     try:
         # Start reddit quotes collection
         processing_status.update({
@@ -122,19 +75,23 @@ def run_processing_pipeline():
         })
         
         # Define input and output directories
-        input_directory = r"C:\\Users\\mwang\\PolicyPulse\\output_raw_ai" 
-        output_directory = r"C:\\Users\\mwang\\PolicyPulse\\output_quotes_ai"
+        input_directory = r"C:\Users\mwang\PolicyPulse\output_raw_ai" 
+        output_directory = r"C:\Users\mwang\PolicyPulse\output_quotes_ai"
         
         logger.info("Starting Reddit data collection...")
         reddit_quotes_main(input_directory, output_directory)
-        processing_status['progress'] = 50
+        processing_status['progress'] = 33
         
         # Start subtopics generation
         processing_status['current_stage'] = 'subtopics'
         logger.info("Starting subtopics analysis...")
-        subtopics_main()  # This one might need arguments too, show me the function signature
-        processing_status['progress'] = 50
-        assign_codes_main()
+        subtopics_main()
+        processing_status['progress'] = 66
+        
+        # Start code-quote mapping
+        processing_status['current_stage'] = 'code_mapping'
+        logger.info("Starting code-quote mapping...")
+        codes_quotes_main()
         processing_status['progress'] = 100
         
         logger.info("Processing completed successfully")
@@ -149,43 +106,80 @@ def run_processing_pipeline():
             'current_stage': None
         })
 
-import jsonlines
-@app.route('/api/quotes/<subtopic>')
-def get_quotes(subtopic):
+@app.route('/api/theme-quotes', methods=['POST'])
+def get_theme_quotes():
+    """Get quotes for selected themes"""
     try:
-        print(f"Fetching quotes for subtopic: {subtopic}")
-        quotes_file = r'C:\Users\mwang\PolicyPulse\output_quotes_ai\combined\categorized_quotes.jsonl'
-
-        if not os.path.exists(quotes_file):
-            print(f"Quotes file not found: {quotes_file}")
-            return jsonify({'error': 'Quotes file not found'}), 404
+        data = request.json
+        selected_themes = data.get('themes', [])
+        
+        if not selected_themes:
+            return jsonify({
+                'status': 'error',
+                'message': 'No themes selected'
+            }), 400
             
-        matching_quotes = []
+        # Path to your files
+        categorized_quotes_path = r"C:\Users\mwang\PolicyPulse\output_quotes_ai\combined\categorized_quotes.jsonl"
+        codes_file_path = r"C:\Users\mwang\PolicyPulse\output_quotes_ai\combined\codes.json"
         
-        # Read quotes and find those that have the matching code_name
-        with jsonlines.open(quotes_file) as reader:
+        # Load the codes data
+        with open(codes_file_path, 'r') as f:
+            codes_data = json.load(f)
+            
+        # Get codes associated with selected themes
+        theme_codes = []
+        for theme in selected_themes:
+            theme_codes.extend([
+                code['code'] 
+                for code in codes_data 
+                if code['theme'] == theme
+            ])
+            
+        # Load and filter the categorized quotes
+        themed_quotes = []
+        with jsonlines.open(categorized_quotes_path) as reader:
             for quote in reader:
-                # Check if any of the codes match the subtopic
-                if any(code['code_name'] == subtopic for code in quote.get('codes', [])):
-                    matching_quotes.append({
-                        'text': quote.get('quote', ''),  # Note: using 'quote' field
-                        'subreddit': quote.get('source_id', ''),  # Note: using 'source_id' field
-                        'score': quote.get('score', 0)
-                    })
+                # Check if any of the quote's codes match our theme codes
+                if any(code in theme_codes for code in quote.get('codes', [])):
+                    # Add theme information to the quote
+                    quote['themes'] = [
+                        theme for theme in selected_themes
+                        if any(
+                            code['code'] in quote.get('codes', [])
+                            for code in codes_data
+                            if code['theme'] == theme
+                        )
+                    ]
+                    themed_quotes.append(quote)
         
-        print(f"Found {len(matching_quotes)} matching quotes for subtopic: {subtopic}")
+        # Group quotes by theme
+        quotes_by_theme = {theme: [] for theme in selected_themes}
+        for quote in themed_quotes:
+            for theme in quote['themes']:
+                quotes_by_theme[theme].append(quote)
         
-        # Limit to 5 quotes
-        matching_quotes = matching_quotes[:5]
+        return jsonify({
+            'status': 'success',
+            'quotes_by_theme': quotes_by_theme,
+            'total_quotes': len(themed_quotes),
+            'themes': selected_themes,
+            'codes': theme_codes
+        })
         
-        return jsonify(matching_quotes)
-    
     except Exception as e:
-        print(f"Error fetching quotes: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'Failed to fetch quotes: {str(e)}'}), 500
-    
+        logger.error(f"Error fetching theme quotes: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/get_related_subreddits', methods=['POST'])
+def get_related_subreddits():
+    data = request.json
+    topic = data.get('topic')
+    related_subreddits = get_relevant_subreddits(topic)
+    return jsonify({'related_subreddits': related_subreddits})
 
 @app.route('/api/start-processing', methods=['POST'])
 def start_processing():

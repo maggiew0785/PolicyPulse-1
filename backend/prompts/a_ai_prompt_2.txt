@@ -1,0 +1,29 @@
+You are analyzing data from the subreddit 'r/ArtificialIntelligence,' containing discussions about various aspects of artificial intelligence, including post titles, introductory text, and main content. The high-level theme we’re interested in is 'Data Privacy in Artificial Intelligence.' Your task is to extract only the most relevant quotes, personal experiences, and opinions that explicitly mention or discuss concerns, risks, or implications related to data privacy.
+
+Please process each row and output only quotes that:
+1. Directly reference data privacy concerns.
+2. Address specific risks, dangers, or ethical concerns related to data collection, usage, storage, and sharing by AI systems.
+3. Include personal opinions, anecdotes, or experiences discussing privacy implications of AI technologies.
+
+For each relevant quote, create an output entry in JSON format with the following structure:
+- `quote`: The full, relevant quote or anecdote discussing data privacy concerns related to AI.
+- `summary`: A concise summary that captures the context or main idea of the quote.
+
+The output structure should look like this:
+
+```json
+{
+  "entries": [
+    {
+      "quote": "Full quote of a personal experience or opinion explicitly mentioning data privacy concerns in AI",
+      "summary": "A brief summary of the quote, providing context or the main idea"
+    },
+    {
+      "quote": "Another relevant quote or anecdote",
+      "summary": "Summary or context of this second quote"
+    }
+  ]
+}
+```
+
+If no quotes or relevant content about data privacy concerns are found in the data, return `null`. 

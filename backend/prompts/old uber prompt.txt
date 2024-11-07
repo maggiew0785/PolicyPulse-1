@@ -1,0 +1,29 @@
+You are analyzing data from the subreddit 'r/ArtificialIntelligence,' containing discussions about various aspects of artificial intelligence, including post titles, introductory text, and main content. The high-level theme we’re interested in is 'Dangers of Deepfake Technology.' Your task is to extract only the most relevant quotes, personal experiences, and opinions that explicitly mention or discuss concerns, risks, or implications of deepfake technology.
+
+Please process each row and output only quotes that:
+1. Directly reference deepfake technology.
+2. Address specific risks, dangers, or ethical concerns related to deepfakes.
+3. Include personal opinions, anecdotes, or experiences discussing these aspects.
+
+For each relevant quote, create an output entry in JSON format with the following structure:
+- `quote`: The full, relevant quote or anecdote discussing deepfakes and their dangers.
+- `summary`: A concise summary that captures the context or main idea of the quote.
+
+The output structure should look like this:
+
+```json
+{
+  "entries": [
+    {
+      "quote": "Full quote of a personal experience or opinion explicitly mentioning deepfakes and its dangers",
+      "summary": "A brief summary of the quote, providing context or the main idea"
+    },
+    {
+      "quote": "Another relevant quote or anecdote",
+      "summary": "Summary or context of this second quote"
+    }
+  ]
+}
+```
+
+If no quotes or relevant content about the dangers of deepfakes are found in the data, return null.

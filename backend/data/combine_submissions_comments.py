@@ -87,6 +87,9 @@ def is_valid_content(text):
                 
 import argparse
 
+
+# python combine_submissions_comments.py "C:\\Users\\mwang\\PolicyPulse\\ArtificialInteligence_submissions" "C:\\Users\\mwang\\PolicyPulse\\ArtificialInteligence_comments" "C:\\Users\\mwang\\PolicyPulse\\output_raw_ai"
+
 def main():
     parser = argparse.ArgumentParser(description="Process subreddit data")
     parser.add_argument("submissions_file", help="Path to the submissions file")
