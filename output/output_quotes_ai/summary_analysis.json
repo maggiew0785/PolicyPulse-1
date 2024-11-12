@@ -1,0 +1,49 @@
+{
+  "codes": [
+    {
+      "name": "Data Privacy",
+      "percentage": "431/520",
+      "description": "Concerns and issues about the collection, usage, security, and ownership of personal and sensitive data by AI systems."
+    },
+    {
+      "name": "Facial Recognition",
+      "percentage": "53/520",
+      "description": "Discussion around the use of facial recognition technology by AI, its impacts on privacy, and associated ethical considerations."
+    },
+    {
+      "name": "Ethical Concerns",
+      "percentage": "157/520",
+      "description": "Issues related to the ethical implications of AI development and deployment, including biases, fairness, and the misuse of AI technologies."
+    },
+    {
+      "name": "Surveillance",
+      "percentage": "88/520",
+      "description": "Concerns about the use of AI for monitoring and tracking individuals, particularly in the contexts of government and corporate surveillance."
+    },
+    {
+      "name": "Bias in AI",
+      "percentage": "62/520",
+      "description": "Discussion on biases present in data and AI systems, their impacts on decision-making, and the need for fairness and equity in AI models."
+    },
+    {
+      "name": "AI in Government Use",
+      "percentage": "41/520",
+      "description": "Discussion about government utilization of AI for various purposes, including implications on privacy, surveillance, and regulatory challenges."
+    },
+    {
+      "name": "Regulations and Compliance",
+      "percentage": "59/520",
+      "description": "Focus on the need for legal frameworks, compliance with data protection laws, and regulations to ensure ethical AI use."
+    },
+    {
+      "name": "AI Misuse and Security Risks",
+      "percentage": "127/520",
+      "description": "Concerns related to the potential for AI technologies to be misused for malicious purposes, including hacking, fraud, and unauthorized data access."
+    },
+    {
+      "name": "User Consent and Control",
+      "percentage": "68/520",
+      "description": "Emphasis on the importance of obtaining user consent for data collection, giving users control over their data, and ensuring transparency in AI practices."
+    }
+  ]
+}
