@@ -11,6 +11,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 from pydantic import BaseModel
 from typing import List
 from dotenv import load_dotenv
+from filelock import FileLock
 
 # Load environment variables
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
@@ -152,7 +153,8 @@ def process_file(file_path, output_dir):
 def process_row(args):
     file_path, row, output_dir = args
     subreddit = os.path.basename(file_path).split('_')[0]
-    system_prompt = read_file(get_env('SYSTEM_PROMPT_PATH'))
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    system_prompt = os.path.join(base_dir, "..","..", "prompts", "b_analyze_summaries_prompt.txt")
 
     # Define output path
     output_subdir = os.path.join(output_dir, subreddit)
@@ -229,7 +231,7 @@ def process_row(args):
             output_dict['source_id'] = row['id']
             print("inside right now")
             # Use a lock to prevent concurrent writes
-            from filelock import FileLock
+            
             lock_path = output_path + '.lock'
             
             with FileLock(lock_path):

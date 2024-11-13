@@ -7,6 +7,7 @@ import pandas as pd
 import json
 from threading import Thread
 import logging
+import traceback
 from data.steps.a_reddit_to_quotes import main as reddit_quotes_main
 from data.steps.b_json_to_subtopics import main as subtopics_main
 from data.steps.c_subtopic_codes_to_quotes import main as assign_codes_main
@@ -17,7 +18,7 @@ load_dotenv()
 base_dir = os.path.dirname(os.path.abspath(__file__))
 # input_directory = os.path.join(base_dir,".." , "output", "output_raw_ai")
 # output_directory = os.path.join(base_dir, "..", "output","output_quotes_ai")
-
+system_prompt_path = os.path.join(base_dir, "..", "prompts", "b_analyze_summaries_prompt.txt")
 template_dir = os.path.abspath('../frontend/build')  # Points to where index.html is
 static_dir = os.path.abspath('../frontend/static')   # Points to where main.js and main.css are
 
@@ -120,10 +121,19 @@ def run_processing_pipeline():
             'progress': 0
         })
         
-        # Define input and output directories
-        input_directory = "..\output\output_raw_ai" 
-        output_directory = "..\output\output_quotes_ai" 
+        # Define input and output directories using os.path.join
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        input_directory = os.path.join(base_dir, "..", "output", "output_raw_ai")
+        output_directory = os.path.join(base_dir, "..", "output", "output_quotes_ai")
+
+        print("input_directory",input_directory)
+        print(output_directory)
         
+        # Ensure directories exist
+        os.makedirs(input_directory, exist_ok=True)
+        os.makedirs(output_directory, exist_ok=True)
+        
+        # Start reddit quotes collection
         logger.info("Starting Reddit data collection...")
         reddit_quotes_main(input_directory, output_directory)
         processing_status['progress'] = 50
@@ -131,9 +141,13 @@ def run_processing_pipeline():
         # Start subtopics generation
         processing_status['current_stage'] = 'subtopics'
         logger.info("Starting subtopics analysis...")
-        subtopics_main()  # This one might need arguments too, show me the function signature
-        processing_status['progress'] = 50
-        assign_codes_main()
+        
+        # Check if `subtopics_main` requires arguments
+        subtopics_main()  # Pass directories if required
+        processing_status['progress'] = 75
+        
+        # Call assign_codes_main if required
+        assign_codes_main()  # Verify if arguments are needed
         processing_status['progress'] = 100
         
         logger.info("Processing completed successfully")
@@ -141,6 +155,7 @@ def run_processing_pipeline():
     except Exception as e:
         processing_status['error'] = str(e)
         logger.error(f"Error during processing: {e}")
+        traceback.print_exc()
         
     finally:
         processing_status.update({
