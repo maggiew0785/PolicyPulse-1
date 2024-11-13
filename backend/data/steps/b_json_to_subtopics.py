@@ -5,7 +5,8 @@ import requests
 from dotenv import load_dotenv
 
 # Load environment variables
-load_dotenv()
+base_dir = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(base_dir, "..", "data", ".env"))
 
 def read_jsonl_summaries(file_path: str) -> List[str]:
     """Read JSONL file and extract all summaries."""
@@ -28,7 +29,10 @@ def analyze_summaries(summaries: List[str]) -> dict:
     """Send summaries to Azure OpenAI for analysis."""
     
     # Read the system prompt from file
-    with open(r'C:\Users\mwang\PolicyPulse\PolicyPulse\backend\prompts\b_analyze_summaries_prompt.txt', 'r', encoding='utf-8') as f:
+    file_path = os.path.join(base_dir, "..", "..", "prompts", "b_analyze_summaries_prompt.txt")
+
+    # Open the file and read its contents
+    with open(file_path, 'r', encoding='utf-8') as f:
         system_prompt = f.read()
     
     user_prompt = f"Here are {len(summaries)} summaries to analyze:\n\n" + "\n".join(summaries)
@@ -73,15 +77,18 @@ def analyze_summaries(summaries: List[str]) -> dict:
 
 def main():
     # Path to your JSONL file
-    file_path = r"C:\Users\mwang\PolicyPulse\output_quotes_ai\combined"
-    # Define output path early
-    output_path = os.path.join(os.path.dirname(file_path), 'summary_analysis.json')
+
+    # Define the full path to `output_quotes_ai/combined`
+    file_path = os.path.join(base_dir, "..", "..", "..","output", "output_quotes_ai", "combined")
+
+    # Define the output path for the JSON file
+    output_path = os.path.join(file_path, 'summary_analysis.json')
     
     # Check if output file already exists
-    if os.path.exists(output_path):
+    if os.path.exists(output_path):   
         print(f"Analysis file {output_path} already exists. Skipping analysis.")
         return
-    
+      
     # Get all JSONL files in the directory
     jsonl_files = []
     for root, dirs, files in os.walk(file_path):

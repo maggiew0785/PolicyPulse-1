@@ -12,6 +12,7 @@ from typing import List, Dict
 
 # Load environment variables
 load_dotenv()
+base_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -66,7 +67,10 @@ def categorize_quotes(quotes: List[Dict], codes: Dict, model_config: Dict) -> Li
     """Categorize quotes using the API."""
     
     # Read the categorization prompt
-    with open(r'C:\Users\mwang\PolicyPulse\PolicyPulse\backend\prompts\c_categorize_quotes_prompt.txt', 'r', encoding='utf-8') as f:
+    file_path = os.path.join(base_dir, "..", "..", "c_categorize_quotes_prompt.txt")
+
+    # Open the file and read its contents
+    with open(file_path, 'r', encoding='utf-8') as f:
         system_prompt = f.read()
     
     # Format codes for the prompt
@@ -112,9 +116,14 @@ def main():
     }
     
     # File paths
-    analysis_file = r"C:\Users\mwang\PolicyPulse\output_quotes_ai\combined\summary_analysis.json"
-    input_file = r"C:\Users\mwang\PolicyPulse\output_quotes_ai\combined\combined_quotes.jsonl"
-    output_file = r"C:\Users\mwang\PolicyPulse\output_quotes_ai\combined\categorized_quotes.jsonl"
+    # Construct the path to `output_quotes_ai/combined/summary_analysis.json`
+    analysis_file = os.path.abspath(os.path.join(base_dir, "..", "..", "..", "output","output_quotes_ai", "combined", "summary_analysis.json"))
+    input_file = os.path.abspath(os.path.join(base_dir, "..", "..", "..","output","output_quotes_ai", "combined", "combined_quotes.jsonl"))
+    output_file = os.path.abspath(os.path.join(base_dir, "..", "..","..", "ouptut","output_quotes_ai", "combined", "categorized_quotes.jsonl"))
+
+
+#'/Users/ellacolby/Desktop/Classes/COS 436/PolicyPulse/backend/output_quotes_ai/combined/summary_analysis.json
+
         # Check if output file already exists
     if os.path.exists(output_file):
         print(f"Combined quote and codes file {output_file} already exists. Skipping matching.")

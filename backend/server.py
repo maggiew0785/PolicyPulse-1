@@ -14,13 +14,12 @@ from data.steps.c_subtopic_codes_to_quotes import main as assign_codes_main
 # Load environment variables
 load_dotenv()
 
+base_dir = os.path.dirname(os.path.abspath(__file__))
+# input_directory = os.path.join(base_dir,".." , "output", "output_raw_ai")
+# output_directory = os.path.join(base_dir, "..", "output","output_quotes_ai")
+
 template_dir = os.path.abspath('../frontend/build')  # Points to where index.html is
 static_dir = os.path.abspath('../frontend/static')   # Points to where main.js and main.css are
-
-app = Flask(__name__, 
-    static_folder=static_dir, 
-    template_folder=template_dir)
-CORS(app)  # Add this line to enable CORS
 
 # Azure OpenAI Configuration
 azure_api_key = os.getenv("AZURE_OPENAI_API_KEY")
@@ -122,8 +121,8 @@ def run_processing_pipeline():
         })
         
         # Define input and output directories
-        input_directory = r"C:\\Users\\mwang\\PolicyPulse\\output_raw_ai" 
-        output_directory = r"C:\\Users\\mwang\\PolicyPulse\\output_quotes_ai"
+        input_directory = "..\output\output_raw_ai" 
+        output_directory = "..\output\output_quotes_ai" 
         
         logger.info("Starting Reddit data collection...")
         reddit_quotes_main(input_directory, output_directory)
@@ -154,38 +153,40 @@ import jsonlines
 def get_quotes(subtopic):
     try:
         print(f"Fetching quotes for subtopic: {subtopic}")
-        quotes_file = r'C:\Users\mwang\PolicyPulse\output_quotes_ai\combined\categorized_quotes.jsonl'
+
+        # Construct the path dynamically
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        quotes_file = os.path.join(base_dir, "..", "output" , "output_quotes_ai", "combined", "categorized_quotes.jsonl")
 
         if not os.path.exists(quotes_file):
             print(f"Quotes file not found: {quotes_file}")
             return jsonify({'error': 'Quotes file not found'}), 404
-            
+
         matching_quotes = []
-        
+
         # Read quotes and find those that have the matching code_name
         with jsonlines.open(quotes_file) as reader:
             for quote in reader:
                 # Check if any of the codes match the subtopic
                 if any(code['code_name'] == subtopic for code in quote.get('codes', [])):
                     matching_quotes.append({
-                        'text': quote.get('quote', ''),  # Note: using 'quote' field
-                        'subreddit': quote.get('source_id', ''),  # Note: using 'source_id' field
+                        'text': quote.get('quote', ''),  # Ensure field is correct
+                        'subreddit': quote.get('source_id', ''),  # Ensure field is correct
                         'score': quote.get('score', 0)
                     })
-        
+
         print(f"Found {len(matching_quotes)} matching quotes for subtopic: {subtopic}")
-        
+
         # Limit to 5 quotes
         matching_quotes = matching_quotes[:5]
-        
+
         return jsonify(matching_quotes)
-    
+
     except Exception as e:
         print(f"Error fetching quotes: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'Failed to fetch quotes: {str(e)}'}), 500
-    
 
 @app.route('/api/start-processing', methods=['POST'])
 def start_processing():
@@ -207,25 +208,31 @@ def get_status():
     """Get current processing status"""
     return jsonify(processing_status)
 
+
 @app.route('/api/results', methods=['GET'])
 def get_results():
     """Get the final analysis results"""
     try:
-        analysis_file_path = r"C:\Users\mwang\PolicyPulse\output_quotes_ai\combined\summary_analysis.json"
-        
+        # Use the base directory of the current file
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+
+        # Construct the full path to the analysis file
+        analysis_file_path = os.path.join(base_dir, "..","output", "output_quotes_ai", "combined", "summary_analysis.json")
+
+        # Check if the file exists
         if not os.path.exists(analysis_file_path):
             return jsonify({
                 'status': 'error',
                 'message': 'Analysis file not found'
             }), 404
 
-        with open(analysis_file_path, 'r') as f:
+        # Open and read the analysis data
+        with open(analysis_file_path, 'r', encoding='utf-8') as f:
             analysis_data = json.load(f)
 
         return jsonify(analysis_data)
-
+    
     except Exception as e:
-        logger.error(f"Error reading analysis file: {e}")
         return jsonify({
             'status': 'error',
             'message': str(e)

@@ -1,0 +1,50 @@
+
+{
+  "codes": [
+    {
+      "name": "Data Privacy Concerns",
+      "percentage": "205/520",
+      "description": "Discussions and concerns about the privacy implications of data collection and use by AI systems."
+    },
+    {
+      "name": "Surveillance and Monitoring",
+      "percentage": "113/520",
+      "description": "Concerns about extensive surveillance and monitoring capabilities enabled by AI, often resulting in invasions of privacy."
+    },
+    {
+      "name": "Ethical Issues",
+      "percentage": "97/520",
+      "description": "Broad ethical concerns related to the use of AI, including biases, misuse, and potential harm to individuals or communities."
+    },
+    {
+      "name": "Regulatory and Legal Concerns",
+      "percentage": "86/520",
+      "description": "Discussions about the need for regulations and legal frameworks to protect data privacy and ensure ethical use of AI technologies."
+    },
+    {
+      "name": "Economic and Social Impact",
+      "percentage": "65/520",
+      "description": "Concerns about AI's impact on the economy and society, including job displacement and social inequality."
+    },
+    {
+      "name": "AI in Government and Military Use",
+      "percentage": "56/520",
+      "description": "Concerns about the use of AI by governments and military, including surveillance, control, and ethical implications."
+    },
+    {
+      "name": "AI Development and Transparency",
+      "percentage": "49/520",
+      "description": "Issues related to the development of AI technologies, the transparency of AI systems, and the need for oversight and accountability."
+    },
+    {
+      "name": "Healthcare Data Privacy",
+      "percentage": "41/520",
+      "description": "Specific concerns about the privacy and security of health data used in AI systems, especially in medical applications."
+    },
+    {
+      "name": "Personal Data Misuse",
+      "percentage": "35/520",
+      "description": "Concerns about the misuse of personal data by companies and the potential exploitation of individuals' information for profit."
+    }
+  ]
+}

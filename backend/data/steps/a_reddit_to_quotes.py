@@ -272,6 +272,6 @@ def main(input_dir, output_dir):
         time.sleep(random.uniform(1, 5))
 
 if __name__ == '__main__':
-    input_directory = get_env('INPUT_DIRECTORY')
-    output_directory = get_env('OUTPUT_DIRECTORY')
-    main(input_directory, output_directory)
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    input_directory = os.path.join(base_dir, "output_raw_ai")
+    output_directory = os.path.join(base_dir, "output_quotes_ai")
