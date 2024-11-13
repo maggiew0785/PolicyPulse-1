@@ -111,7 +111,6 @@ def get_themes(subreddit):
         return jsonify({"error": "Failed to retrieve themes."}), 500
 
 def run_processing_pipeline():
-    """Run both processing scripts in sequence"""
     try:
         # Start reddit quotes collection
         processing_status.update({
