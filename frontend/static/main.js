@@ -39,7 +39,7 @@ loadingIndicator.innerHTML = `
     <div class="loading-content">
         <div class="loading-spinner"></div>
         <div class="loading-status">Processing data...</div>
-        <div class="loading-progress">0%</div>
+
     </div>
 `;
 document.body.appendChild(loadingIndicator);
@@ -135,13 +135,10 @@ async function checkStatus() {
 
         // Update loading indicator
         const statusText = document.querySelector('.loading-status');
-        const progressText = document.querySelector('.loading-progress');
-        
         if (statusData.current_stage) {
             statusText.textContent = statusData.current_stage === 'reddit_quotes' 
                 ? 'Collecting Reddit data...'
                 : 'Generating themes...';
-            progressText.textContent = `${statusData.progress}%`;
         }
 
         if (!statusData.is_processing) {
@@ -153,7 +150,6 @@ async function checkStatus() {
                 console.error('Processing error:', statusData.error);
                 alert('Processing failed: ' + statusData.error);
             } else {
-                // Now directly call generateReport with the stored theme title
                 console.log("Processing complete, generating report for:", window.clickedThemeTitle);
                 await generateReport(window.clickedThemeTitle);
             }
