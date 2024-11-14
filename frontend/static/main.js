@@ -39,7 +39,6 @@ loadingIndicator.innerHTML = `
     <div class="loading-content">
         <div class="loading-spinner"></div>
         <div class="loading-status">Processing data...</div>
-
     </div>
 `;
 document.body.appendChild(loadingIndicator);
@@ -415,25 +414,28 @@ async function generateReport(themeTitle) {
                     </div>
                 </div>
             </div>
-            <div class="subtopics">
-                ${data.codes.map(code => `
-                    <div class="subtopic-item" data-subtopic="${code.name}">
-                        <div class="subtopic-header">
-                            <div class="posts-count">
-                                ${code.percentage} posts
-                            </div>
-                            <h3>${code.name}</h3>
+           <div class="subtopics">
+            ${data.codes.map(code => `
+                <div class="subtopic-item" data-subtopic="${code.name}">
+                    <div class="subtopic-header">
+                        <div class="posts-count">
+                            ${code.percentage} posts
+                        </div>
+                        <h3>${code.name}</h3>
+                        <div class="expand-container">
+                            <span class="see-real-quotes">See real quotes</span>
                             <button class="expand-button" 
                                     onclick="toggleQuotes(this)" 
                                     data-subtopic="${code.name}">▼</button>
                         </div>
-                        <p class="description">${code.description}</p>
-                        <div class="quotes-container hidden">
-                            Loading quotes...
-                        </div>
                     </div>
-                `).join('')}
-            </div>
+                    <p class="description">${code.description}</p>
+                    <div class="quotes-container hidden">
+                        Loading quotes...
+                    </div>
+                </div>
+            `).join('')}
+        </div>
         `;
 
         // Show the report container
