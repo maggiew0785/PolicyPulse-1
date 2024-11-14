@@ -26,26 +26,8 @@ searchButton.addEventListener('click', async function () {
 
     // Show the loading indicator
     loadingIndicator.classList.remove('hidden');
-
-    try {
-        const response = await fetch('/api/results');
-        if (!response.ok) {
-            throw new Error('Failed to fetch results');
-        }
-        
-        const data = await response.json();
-        // Only update the report if we're actually showing it
-        if (!reportContainer.classList.contains('hidden')) {
-            generateReport(data.codes);
-        }
-        
-    } catch (error) {
-        console.error('Error fetching results:', error);
-        alert('Failed to fetch analysis results');
-    } finally {
-        // Hide the loading indicator
-        loadingIndicator.classList.add('hidden');
-    }
+    await startProcessing();
+   
 });
 
 
