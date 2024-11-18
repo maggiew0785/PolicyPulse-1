@@ -152,28 +152,15 @@ def process_file(file_path, output_dir):
 
 def process_row(args):
     file_path, row, output_dir = args
-    subreddit = os.path.basename(file_path).split('_')[0]
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    system_prompt = os.path.join(base_dir, "..","..", "prompts", "b_analyze_summaries_prompt.txt")
+    system_prompt = os.path.join(base_dir, "..","..", "prompts", "a_ai_prompt_2.txt")
+    system_prompt = read_file(system_prompt)
+    # Use same output path as process_file()
+    output_subdir = os.path.join(output_dir, 'combined')
+    output_path = os.path.join(output_subdir, 'combined_quotes.jsonl')
 
-    # Define output path
-    output_subdir = os.path.join(output_dir, subreddit)
-    os.makedirs(output_subdir, exist_ok=True)
-    output_path = os.path.join(output_subdir, f'{subreddit}_quotes.jsonl')
-
-    # Check if this row was already processed (double-check)
-    processed_ids = set()
-    if os.path.exists(output_path):
-        with open(output_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                try:
-                    data = json.loads(line)
-                    processed_ids.add(data.get('source_id'))
-                except json.JSONDecodeError:
-                    continue
-    
-    if row['id'] in processed_ids:
-        return
+    # Remove duplicate ID check since process_file() already does this
+    # The ID check here is redundant since process_file() already filters unprocessed rows
 
     formatted_submission = {
         "Submission Title": row['title'],

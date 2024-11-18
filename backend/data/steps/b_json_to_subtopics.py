@@ -80,6 +80,7 @@ def main():
 
     # Define the full path to `output_quotes_ai/combined`
     file_path = os.path.join(base_dir, "..", "..", "..","output", "output_quotes_ai", "combined")
+    # file_path = os.path.join(base_dir, "..", "..", "output", "output_quotes_ai", "combined")
 
     # Define the output path for the JSON file
     output_path = os.path.join(file_path, 'summary_analysis.json')
