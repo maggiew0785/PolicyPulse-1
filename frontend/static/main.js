@@ -436,17 +436,46 @@ async function generateReport(themeTitle) {
                 </div>
             `).join('')}
         </div>
+        <button id="downloadReport" class="download-button">Download Report</button>
         `;
 
         // Show the report container
         reportContainer.classList.remove('hidden');
         console.log("Report container should now be visible");
 
+        // Add an event listener for the download button
+        const downloadButton = document.getElementById('downloadReport');
+        downloadButton.addEventListener('click', () => downloadReportAsJSON(data, themeTitle));
+
     } catch (error) {
         console.error('Error generating report:', error);
         alert('Failed to generate report. Please try again.');
     }
 }
+function downloadReportAsJSON(data, themeTitle) {
+    // Create a JSON string from the data
+    const jsonString = JSON.stringify(data, null, 2);
+
+    // Create a Blob from the JSON string
+    const blob = new Blob([jsonString], { type: 'application/json' });
+
+    // Create a link element
+    const link = document.createElement('a');
+
+    // Set the download URL and filename
+    link.href = URL.createObjectURL(blob);
+    link.download = `${themeTitle.replace(/\s+/g, '_')}_Report.json`;
+
+    // Append the link to the document body
+    document.body.appendChild(link);
+
+    // Trigger the download
+    link.click();
+
+    // Remove the link element from the document
+    document.body.removeChild(link);
+}
+
 
 // Helper function to calculate total posts
 function calculateTotalPosts(codes) {
