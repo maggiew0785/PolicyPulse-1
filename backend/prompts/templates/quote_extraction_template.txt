@@ -1,0 +1,29 @@
+You are analyzing data from the subreddit '$subreddit', containing discussions about various aspects of $topic, including post titles, introductory text, and main content. The high-level theme we're interested in is '$theme'. Your task is to extract only the most relevant quotes, personal experiences, and opinions that explicitly mention or discuss concerns, risks, or implications related to $theme_focus.
+
+Please process each row and output only quotes that:
+1. Directly reference $theme_focus concerns.
+2. Address specific risks, dangers, or ethical concerns related to $concerns_scope.
+3. Include personal anecdotes or experiences discussing $theme_focus implications of $topic.
+
+For each relevant quote, create an output entry in JSON format with the following structure:
+- `quote`: The full, relevant quote or anecdote discussing $theme_focus concerns related to $topic.
+- `summary`: A concise summary that captures the context or main idea of the quote.
+
+The output structure should look like this:
+
+```json
+{
+  "entries": [
+    {
+      "quote": "Full quote of a personal experience or opinion explicitly mentioning $theme_focus concerns in $topic",
+      "summary": "A brief summary of the quote, providing context or the main idea"
+    },
+    {
+      "quote": "Another relevant quote or anecdote about $theme_focus",
+      "summary": "Summary or context of this second quote"
+    }
+  ]
+}
+```
+
+If no quotes or relevant content about $theme_focus concerns are found in the data, return `null`.

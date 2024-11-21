@@ -75,16 +75,19 @@ def analyze_summaries(summaries: List[str]) -> dict:
     else:
         raise Exception(f"API call failed: {response.status_code} - {response.text}")
 
-def main():
+def main(input_subdir):
     # Path to your JSONL file
 
     # Define the full path to `output_quotes_ai/combined`
-    file_path = os.path.join(base_dir, "..", "..", "..","output", "output_quotes_ai", "combined")
+    # file_path = os.path.join(input_path, "..", "..", "..","output", "output_quotes_ai", "combined")
     # file_path = os.path.join(base_dir, "..", "..", "output", "output_quotes_ai", "combined")
 
     # Define the output path for the JSON file
-    output_path = os.path.join(file_path, 'summary_analysis.json')
-    
+    output_path = os.path.join(input_subdir, 'summary_analysis.json')
+    print("IN STEP 2")
+    print("OUTPUT PATH FOR SUBTOPIC SUMMARIES")
+    print(output_path)
+
     # Check if output file already exists
     if os.path.exists(output_path):   
         print(f"Analysis file {output_path} already exists. Skipping analysis.")
@@ -92,7 +95,7 @@ def main():
       
     # Get all JSONL files in the directory
     jsonl_files = []
-    for root, dirs, files in os.walk(file_path):
+    for root, dirs, files in os.walk(input_subdir):
         for file in files:
             if file.endswith('_quotes.jsonl'):
                 jsonl_files.append(os.path.join(root, file))
@@ -112,12 +115,12 @@ def main():
         results = analyze_summaries(all_summaries)
         
         # Print results in a formatted way
-        print("\nTop 9 Codes Analysis:")
-        print("-" * 50)
-        for code in results['codes']:
-            print(f"\nCode: {code['name']}")
-            print(f"Percentage: {code['percentage']}")
-            print(f"Description: {code['description']}")
+        # print("\nTop 9 Codes Analysis:")
+        # print("-" * 50)
+        # for code in results['codes']:
+        #     print(f"\nCode: {code['name']}")
+        #     print(f"Percentage: {code['percentage']}")
+        #     print(f"Description: {code['description']}")
         
         # Save results to a file
         with open(output_path, 'w', encoding='utf-8') as f:

@@ -106,7 +106,7 @@ def categorize_quotes(quotes: List[Dict], codes: Dict, model_config: Dict) -> Li
    
    return json.loads(content)['categorized_quotes']
 
-def main():
+def main(output_subdir):
    # Configuration
    model_config = {
        'endpoint': os.getenv('AZURE_OPENAI_ENDPOINT'),
@@ -114,12 +114,17 @@ def main():
        'deployment_name': os.getenv('DEPLOYMENT_NAME'),
        'api_version': os.getenv('AZURE_OPENAI_API_VERSION', '2024-08-01-preview')
    }
-   
+
+   analysis_file = os.path.join(output_subdir, "summary_analysis.json")
+   input_file = os.path.join(output_subdir, "combined_quotes.jsonl")
+   output_file = os.path.join(output_subdir, "categorized_quotes.jsonl")
    # Updated file paths
-   analysis_file = os.path.join(base_dir, "..", "..", "..", "output", "output_quotes_ai", "combined", "summary_analysis.json")
+#    analysis_file = os.path.join(base_dir, "..", "..", "..", "output", "output_quotes_ai", "combined", "summary_analysis.json")
 #    analysis_file = os.path.join(base_dir, "..", "..", "output", "output_quotes_ai", "combined", "summary_analysis.json")
-   input_file = os.path.join(base_dir, "..", "..", "..", "output", "output_quotes_ai", "combined", "combined_quotes.jsonl")
-   output_file = os.path.join(base_dir, "..", "..", "..", "output", "output_quotes_ai", "combined", "categorized_quotes.jsonl")
+#    input_file = os.path.join(base_dir, "..", "..", "..", "output", "output_quotes_ai", "combined", "combined_quotes.jsonl")
+#    output_file = os.path.join(base_dir, "..", "..", "..", "output", "output_quotes_ai", "combined", "categorized_quotes.jsonl")
+
+
 
    # Check if output file already exists
    if os.path.exists(output_file):
@@ -142,11 +147,12 @@ def main():
            try:
                data = json.loads(line.strip())
                for entry in data.get('entries', []):
-                   if 'quote' in entry:
-                       quotes.append({
-                           'quote': entry['quote'],
-                           'source_id': data.get('source_id', 'unknown')
-                       })
+                    if 'quote' in entry and 'summary' in entry:  # Check for both quote and summary
+                        quotes.append({
+                            'quote': entry['quote'],
+                            'summary': entry['summary'],  # Add summary
+                            'source_id': data.get('source_id', 'unknown')
+                        })
            except json.JSONDecodeError as e:
                print(f"Error parsing JSON line: {str(e)}")
                continue
@@ -159,21 +165,25 @@ def main():
    
    print("\nCategorizing quotes in batches...")
    for i in range(0, len(quotes), batch_size):
-       batch = quotes[i:i + batch_size]
-       try:
-           results = categorize_quotes(batch, codes, model_config)
-           
-           # Write results immediately
-           with open(output_file, 'a', encoding='utf-8') as f:
-               for quote in results:
-                   f.write(json.dumps(quote) + '\n')
-           
-           categorized_quotes.extend(results)
-           print(f"Processed batch {i//batch_size + 1} of {(len(quotes) + batch_size - 1)//batch_size}")
-           
-       except Exception as e:
-           print(f"Error processing batch starting at index {i}: {str(e)}")
-           continue
+        batch = quotes[i:i + batch_size]
+        try:
+            results = categorize_quotes(batch, codes, model_config)
+            
+            # Merge the results with the original summaries
+            for result, original_quote in zip(results, batch):
+                result['summary'] = original_quote.get('summary')  # Add the summary to the result
+            
+            # Write results immediately
+            with open(output_file, 'a', encoding='utf-8') as f:
+                for quote in results:
+                    f.write(json.dumps(quote) + '\n')
+            
+            categorized_quotes.extend(results)
+            print(f"Processed batch {i//batch_size + 1} of {(len(quotes) + batch_size - 1)//batch_size}")
+            
+        except Exception as e:
+            print(f"Error processing batch starting at index {i}: {str(e)}")
+            continue
    
    # Generate statistics
    if categorized_quotes:
@@ -185,14 +195,14 @@ def main():
                code_counts[code_name] = code_counts.get(code_name, 0) + 1
                total_assignments += 1
        
-       print("\nCode Distribution Statistics:")
-       print("-" * 50)
-       for code_name, count in sorted(code_counts.items(), key=lambda x: x[1], reverse=True):
-           percentage = (count / len(quotes)) * 100
-           print(f"{code_name}: {count} assignments ({percentage:.1f}% of quotes)")
+    #    print("\nCode Distribution Statistics:")
+    #    print("-" * 50)
+    #    for code_name, count in sorted(code_counts.items(), key=lambda x: x[1], reverse=True):
+    #        percentage = (count / len(quotes)) * 100
+    #        print(f"{code_name}: {count} assignments ({percentage:.1f}% of quotes)")
        
-       print(f"\nAverage codes per quote: {total_assignments / len(quotes):.1f}")
-       print(f"\nResults saved to: {output_file}")
+    #    print(f"\nAverage codes per quote: {total_assignments / len(quotes):.1f}")
+    #    print(f"\nResults saved to: {output_file}")
    else:
        print("No quotes were successfully categorized.")
 

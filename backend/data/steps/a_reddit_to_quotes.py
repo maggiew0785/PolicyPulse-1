@@ -12,6 +12,11 @@ from pydantic import BaseModel
 from typing import List
 from dotenv import load_dotenv
 from filelock import FileLock
+import string
+from datetime import datetime
+from string import Template
+from typing import Dict
+import hashlib
 
 # Load environment variables
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
@@ -23,6 +28,35 @@ class QuoteSummary(BaseModel):
 class EntriesOutput(BaseModel):
     entries: List[QuoteSummary]
 
+class PromptHandler:
+    def __init__(self, base_dir: str):
+        self.base_dir = base_dir
+        self.cache_dir = os.path.join(base_dir, "cache")
+        os.makedirs(self.cache_dir, exist_ok=True)
+        
+    def get_cache_key(self, subreddit: str, theme: str) -> str:
+        """Generate a unique cache key for a subreddit-theme combination"""
+        return hashlib.md5(f"{subreddit}:{theme}".encode()).hexdigest()
+    
+    def get_cached_output(self, subreddit: str, theme: str) -> str:
+        """Check if we have cached results for this combination"""
+        cache_key = self.get_cache_key(subreddit, theme)
+        cache_file = os.path.join(self.cache_dir, f"{cache_key}.jsonl")
+        if os.path.exists(cache_file):
+            return cache_file
+        return None
+
+    def generate_prompt(self, template_path: str, params: Dict[str, str]) -> str:
+        """Generate a prompt from template file with given parameters"""
+        try:
+            with open(template_path, 'r', encoding='utf-8') as file:
+                template_content = file.read()
+                template = string.Template(template_content)
+                return template.safe_substitute(params)
+        except Exception as e:
+            print(f"Error reading template file: {e}")
+            return None
+    
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -106,24 +140,25 @@ def make_api_call(messages):
         logging.warning(f"API call failed: {str(e)}. Retrying...")
         raise
 
-
-def process_file(file_path, output_dir):
+def process_file(file_path, output_dir, subreddit, theme, prompt_params):
     df = pd.read_csv(file_path)
+    df = df.head(150)
     
-    # Limit to first 300 rows
-    df = df.head(5)
+    # Sanitize subreddit and theme names for directory paths
+    safe_subreddit = subreddit.replace('/', '_').replace(' ', '_')
+    safe_theme = theme.replace(' ', '_')
     
-    # Debug print
-    print(f"Total rows to process: {len(df)}")
-    
-    # Read existing processed IDs from the JSONL file
-    processed_ids = set()
-    output_subdir = os.path.join(output_dir, 'combined')
+    # Create specific output directory for this subreddit/theme combination
+    output_subdir = os.path.join(output_dir, safe_subreddit, safe_theme)
     os.makedirs(output_subdir, exist_ok=True)
     output_path = os.path.join(output_subdir, 'combined_quotes.jsonl')
     
+    print(f"Processing for specific combination: {subreddit} - {theme}")
+    print(f"Output path: {output_path}")
+    
+    # Check for existing processed IDs only in this specific directory
+    processed_ids = set()
     if os.path.exists(output_path):
-        print(f"Found existing file: {output_path}")
         with open(output_path, 'r', encoding='utf-8') as f:
             for line in f:
                 try:
@@ -132,36 +167,48 @@ def process_file(file_path, output_dir):
                         processed_ids.add(data['source_id'])
                 except json.JSONDecodeError:
                     continue
-    
-    print(f"Found {len(processed_ids)} previously processed IDs")
-    
-    # Filter to only unprocessed rows
-    unprocessed_rows = df[~df['id'].isin(processed_ids)]
-    print(f"Found {len(unprocessed_rows)} new rows to process")
 
+    unprocessed_rows = df[~df['id'].isin(processed_ids)]
+    
     if len(unprocessed_rows) == 0:
         print("No new rows to process!")
-        return  # Exit early if nothing to process
+        return
 
-    # Only create pool and progress bar if there are actually rows to process
     with Pool(POOL_SIZE) as pool:
-        args = [(file_path, row, output_dir) for _, row in unprocessed_rows.iterrows()]
+        args = [(file_path, row, output_subdir, subreddit, theme, prompt_params) 
+                for _, row in unprocessed_rows.iterrows()]
         list(tqdm(pool.imap_unordered(process_row, args), 
                  total=len(unprocessed_rows),
-                 desc=f"Processing {os.path.basename(file_path)}"))
+                 desc=f"Processing {subreddit} - {theme}"))
+    return output_subdir
 
 def process_row(args):
-    file_path, row, output_dir = args
+    # Correctly unpack all arguments including prompt_params
+    file_path, row, output_dir, subreddit, theme, prompt_params = args
+    
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    system_prompt = os.path.join(base_dir, "..","..", "prompts", "a_ai_prompt_2.txt")
-    system_prompt = read_file(system_prompt)
-    # Use same output path as process_file()
-    output_subdir = os.path.join(output_dir, 'combined')
-    output_path = os.path.join(output_subdir, 'combined_quotes.jsonl')
-
-    # Remove duplicate ID check since process_file() already does this
-    # The ID check here is redundant since process_file() already filters unprocessed rows
-
+    template_path = os.path.join(base_dir, "..", "..", "prompts", "templates", "quote_extraction_template.txt")
+    
+    # Initialize PromptHandler with base_dir
+    prompt_handler = PromptHandler(base_dir)
+    
+    # Use the prompt_params that were passed in, don't create new ones
+    # print("Using Prompt Parameters:")
+    # print(prompt_params)
+    
+    # Use the prompt handler to generate the prompt from the template file
+    system_prompt = prompt_handler.generate_prompt(template_path, prompt_params)
+    # if system_prompt:
+    #     print("\nGenerated Prompt Content:")
+    #     # print(system_prompt)
+    # else:
+    #     print(f"\nError: Could not generate prompt from template at {template_path}")
+    
+    # Create subreddit and theme specific output directory
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, 'combined_quotes.jsonl')
+    # print("Output Path:")
+    # print(output_path)
     formatted_submission = {
         "Submission Title": row['title'],
         "Submission Body": row['selftext'],
@@ -178,26 +225,28 @@ def process_row(args):
         ]
 
         response = make_api_call(messages)
+        # print("Got a response!")
+        # print(response)
+        if response is None:  # Handle case where API call returns None
+            return
+            
         response_content = response['choices'][0].get('message', {}).get('content')
         if not response_content or response_content.strip() in ["null", "```json\nnull\n```"]:
-            # logging.info(f"No relevant data for row {row['id']}")
             return
 
         # Clean the response content by removing markdown code block formatting
         cleaned_content = response_content
         if response_content.startswith("```json"):
-            # Remove ```json from start and ``` from end
             cleaned_content = response_content.replace("```json", "", 1)
             cleaned_content = cleaned_content.replace("```", "", 1)
         
-        # Strip any remaining whitespace
         cleaned_content = cleaned_content.strip()
         
         print(f"Cleaned content: {cleaned_content}")
         
         try:
             parsed_data = json.loads(cleaned_content)
-            print(f"Successfully parsed JSON: {parsed_data}")
+            # print(f"Successfully parsed JSON: {parsed_data}")
         except json.JSONDecodeError as e:
             print(f"JSON parsing error: {str(e)}")
             print(f"Content that failed to parse: {cleaned_content}")
@@ -210,20 +259,24 @@ def process_row(args):
         parsed_output = EntriesOutput(
             entries=[QuoteSummary(**item) for item in parsed_data.get("entries", [])]
         )
-        print(f"Parsed output: {parsed_output}")
+        # print(f"Parsed output: {parsed_output}")
 
         if parsed_output.entries:
-            # Add row ID to each entry for traceability
+            # Add row ID and metadata to each entry
             output_dict = parsed_output.dict()
-            output_dict['source_id'] = row['id']
-            print("inside right now")
-            # Use a lock to prevent concurrent writes
+            output_dict.update({
+                'source_id': row['id'],
+                'subreddit': subreddit,
+                'theme': theme,
+                'processed_timestamp': datetime.now().isoformat()
+            })
             
+            # Use a lock to prevent concurrent writes
             lock_path = output_path + '.lock'
             
             with FileLock(lock_path):
                 with open(output_path, 'a', encoding='utf-8') as file:
-                    print("DUMPING SOMETHING??")
+                    print("Writing to output file...")
                     file.write(json.dumps(output_dict) + '\n')
                     file.flush()
                     os.fsync(file.fileno())  # Force write to disk
@@ -236,31 +289,28 @@ def process_row(args):
         logging.error(f"Error processing row {row['id']} in {file_path}: {str(e)}")
 
 
-# def process_file(file_path, output_dir):
-#     df = pd.read_csv(file_path)
-#     with Pool(POOL_SIZE) as pool:
-#         args = [(file_path, row, output_dir) for _, row in df.iterrows()]
-#         for _ in tqdm(pool.imap_unordered(process_row, args), total=len(df),
-#                       desc=f"Processing {os.path.basename(file_path)}"):
-#             time.sleep(2)  # Add a fixed delay (e.g., 1 second) between each request
-
-
-def main(input_dir, output_dir):
-    print(f"POOL_SIZE: {POOL_SIZE}, DEPLOYMENT_NAME: {DEPLOYMENT_NAME}, endpoint: {endpoint}, api_key: {api_key}")
+def main(input_dir, output_dir, subreddit, theme, prompt_params):
+    """
+    Main processing function
+    Args:
+        input_dir (str): Directory containing input files
+        output_dir (str): Directory for output files
+        subreddit (str): Selected subreddit (e.g., "r/ArtificialIntelligence")
+        theme (str): Selected theme (e.g., "Data Privacy")
+        prompt_params (dict): Parameters for template generation
+    """
+    print(f"Processing {subreddit} for theme: {theme}")
+    print(f"POOL_SIZE: {POOL_SIZE}, DEPLOYMENT_NAME: {DEPLOYMENT_NAME}")
+    
     os.makedirs(output_dir, exist_ok=True)
     csv_files = [f for f in os.listdir(input_dir) if f.endswith('_llm.csv')]
     total_files = len(csv_files)
-    print(f"Total Files: {total_files}")
+    
     for i, csv_file in enumerate(csv_files, 1):
         file_path = os.path.join(input_dir, csv_file)
         logging.info(f"Processing file {i} of {total_files}: {csv_file}")
-        process_file(file_path, output_dir)
+        # Pass prompt_params to process_file
+        output_subdir = process_file(file_path, output_dir, subreddit, theme, prompt_params)
         logging.info(f"Completed file {i} of {total_files}: {csv_file}")
-        logging.info(f"Files remaining: {total_files - i}")
 
-        time.sleep(random.uniform(1, 5))
-
-if __name__ == '__main__':
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    input_directory = os.path.join(base_dir, "output_raw_ai")
-    output_directory = os.path.join(base_dir, "output_quotes_ai")
+    return output_subdir
