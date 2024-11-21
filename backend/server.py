@@ -166,32 +166,47 @@ def start_processing():
     global processing_state
 
     try:
-        print("Received start-processing request")
         data = request.json
-        print(f"Request data: {data}")
-        
         subreddit = data.get('subreddit')
         theme = data.get('theme')
-        
-        print(f"Subreddit: {subreddit}")
-        print(f"Theme: {theme}")
 
         if not subreddit or not theme:
             return jsonify({'error': 'Subreddit and theme are required'}), 400
-
-        if processing_state['is_processing']:
-            return jsonify({'error': 'Processing already in progress'}), 429
 
         # Clean the paths and create directories
         clean_subreddit = subreddit.replace('r/', '')
         clean_theme = theme.replace(' ', '_')
         output_subdir = os.path.join(paths.output_dir, f"r_{clean_subreddit}", clean_theme)
-        
+        existing_quotes_file = os.path.join(output_subdir, "categorized_quotes.jsonl")
+        existing_analysis_file = os.path.join(output_subdir, "summary_analysis.json")
+
+        # Check if files already exist
+        if os.path.exists(existing_quotes_file) and os.path.exists(existing_analysis_file):
+            # Update paths for existing files
+            paths.quotes_file = existing_quotes_file
+            paths.analysis_file = existing_analysis_file
+            
+            # Update processing state to indicate completion
+            processing_state.update({
+                'is_processing': False,
+                'current_stage': 'complete',
+                'subreddit': subreddit,
+                'theme': theme,
+                'error': None
+            })
+            
+            return jsonify({
+                'status': 'Already processed',
+                'output_dir': output_subdir,
+                'message': 'Previous analysis found'
+            })
+
+        if processing_state['is_processing']:
+            return jsonify({'error': 'Processing already in progress'}), 429
+
         try:
             os.makedirs(output_subdir, exist_ok=True)
-            print(f"Created output directory: {output_subdir}")
         except Exception as e:
-            print(f"Error creating directories: {e}")
             return jsonify({'error': f'Failed to create output directories: {str(e)}'}), 500
 
         # Update processing state
@@ -212,8 +227,6 @@ def start_processing():
             'concerns_scope': f"{theme.lower()} in the context of {clean_subreddit}"
         }
 
-        print("Starting processing thread with parameters:", prompt_params)
-
         # Start processing in a thread
         thread = Thread(target=process_in_background, args=(subreddit, theme, prompt_params))
         thread.daemon = True
@@ -222,8 +235,6 @@ def start_processing():
         return jsonify({'status': 'Processing started', 'output_dir': output_subdir})
 
     except Exception as e:
-        print(f"Error in start_processing: {str(e)}")
-        print(f"Full traceback: {traceback.format_exc()}")
         processing_state['error'] = str(e)
         processing_state['is_processing'] = False
         return jsonify({'error': str(e)}), 500
